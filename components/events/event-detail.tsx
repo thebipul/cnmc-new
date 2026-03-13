@@ -43,9 +43,9 @@ export function EventDetailClient({
   } = useQuery({
     queryKey: ["events", id],
     queryFn: () => fetchEventById(id),
-    initialData: initialData?.event,
+    ...(initialData?.event ? { initialData: initialData.event } : {}),
     staleTime: 1000 * 60 * 5,
-    cacheTime: 1000 * 60 * 15,
+    gcTime: 1000 * 60 * 15,
   });
 
   const isPast = event ? new Date(event.event_date) < new Date() : false;

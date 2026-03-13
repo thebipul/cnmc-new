@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { User, Target, Eye, Heart } from "lucide-react"
+import { OBJECTIVE_ICONS } from "@/lib/objective-icons"
 import { BOARD_MEMBERS_SELECT } from "@/lib/board-members"
 import type { BoardMember } from "@/lib/types"
 
@@ -27,7 +28,15 @@ export default async function AboutPage() {
   const settingsMap = settings?.reduce((acc, setting) => {
     acc[setting.key] = setting.value
     return acc
-  }, {} as Record<string, string | null>) || {}
+  }, {} as Record<string, any>) || {}
+
+  const objectives: Array<{ icon: string; text: string }> = Array.isArray(settingsMap.objectives)
+    ? settingsMap.objectives
+    : []
+
+  const aboutParagraphs: string[] = typeof settingsMap.about_text === "string"
+    ? settingsMap.about_text.split(/\n\n+/).filter(Boolean)
+    : []
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -40,9 +49,12 @@ export default async function AboutPage() {
               <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
                 About CNMC
               </h1>
-              <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
-                {settingsMap.about_text || "Canadian Nepali Mahila Chautari (CNMC) is a non-profit organization dedicated to empowering women and promoting cultural unity within the Nepali-Canadian community."}
-              </p>
+              <div className="mt-6 space-y-4 text-lg leading-relaxed text-muted-foreground text-left">
+                {aboutParagraphs.length > 0
+                  ? aboutParagraphs.map((p, i) => <p key={i}>{p}</p>)
+                  : <p>Canadian Nepali Mahila Chautari (CNMC) is a non-profit organization dedicated to empowering women and promoting cultural unity within the Nepali-Canadian community.</p>
+                }
+              </div>
             </div>
           </div>
         </section>
@@ -83,6 +95,35 @@ export default async function AboutPage() {
             </div>
           </div>
         </section>
+
+        {/* Objectives */}
+        {objectives.length > 0 && (
+          <section className="py-16 sm:py-24 bg-muted/30">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-12">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
+                  Our Goals
+                </h2>
+                <p className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                  Our Objectives
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {objectives.map((obj, i) => {
+                  const Icon = OBJECTIVE_ICONS[obj.icon] ?? Target
+                  return (
+                    <div key={i} className="flex gap-4 rounded-2xl bg-card p-6 border border-border shadow-sm">
+                      <div className="shrink-0 mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <p className="text-muted-foreground leading-relaxed">{obj.text}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Board Members */}
         <section id="board" className="py-16 sm:py-24 bg-muted/50">
