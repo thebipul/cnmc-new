@@ -1,14 +1,9 @@
--- Enable Row Level Security on all tables
-ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.board_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.gallery_images ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.contact_submissions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.newsletter_subscribers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+-- Fix infinite recursion in admin_users RLS policies.
+-- Policies that check "is current user super_admin?" by querying admin_users
+-- trigger RLS on admin_users again, causing recursion.
+-- Solution: a SECURITY DEFINER function that reads admin_users without RLS.
 
--- Helper: get current user's admin role without triggering RLS (avoids infinite recursion)
+-- 1. Function to get current user's role (bypasses RLS)
 CREATE OR REPLACE FUNCTION public.current_user_admin_role()
 RETURNS text
 LANGUAGE sql
@@ -19,10 +14,13 @@ AS $$
   SELECT role FROM public.admin_users WHERE id = auth.uid()
 $$;
 
--- Admin Users Policies
-CREATE POLICY "Admin users can view their own profile" ON public.admin_users
-  FOR SELECT USING (auth.uid() = id);
+-- 2. Drop the admin_users policies that cause recursion
+DROP POLICY IF EXISTS "Super admins can view all admin users" ON public.admin_users;
+DROP POLICY IF EXISTS "Super admins can insert admin users" ON public.admin_users;
+DROP POLICY IF EXISTS "Super admins can update admin users" ON public.admin_users;
+DROP POLICY IF EXISTS "Super admins can delete admin users" ON public.admin_users;
 
+-- 3. Recreate them using the function (no subquery on admin_users)
 CREATE POLICY "Super admins can view all admin users" ON public.admin_users
   FOR SELECT USING (public.current_user_admin_role() = 'super_admin');
 
@@ -35,9 +33,12 @@ CREATE POLICY "Super admins can update admin users" ON public.admin_users
 CREATE POLICY "Super admins can delete admin users" ON public.admin_users
   FOR DELETE USING (public.current_user_admin_role() = 'super_admin');
 
--- Board Members Policies (public read, admin write)
-CREATE POLICY "Anyone can view active board members" ON public.board_members
-  FOR SELECT USING (is_active = TRUE);
+-- 4. Update other tables' policies to use the function (avoids any RLS on admin_users)
+-- Board members
+DROP POLICY IF EXISTS "Admins can view all board members" ON public.board_members;
+DROP POLICY IF EXISTS "Admins can insert board members" ON public.board_members;
+DROP POLICY IF EXISTS "Admins can update board members" ON public.board_members;
+DROP POLICY IF EXISTS "Super admins can delete board members" ON public.board_members;
 
 CREATE POLICY "Admins can view all board members" ON public.board_members
   FOR SELECT USING (public.current_user_admin_role() IN ('super_admin', 'admin'));
@@ -51,9 +52,11 @@ CREATE POLICY "Admins can update board members" ON public.board_members
 CREATE POLICY "Super admins can delete board members" ON public.board_members
   FOR DELETE USING (public.current_user_admin_role() = 'super_admin');
 
--- Events Policies (public read published, admin write)
-CREATE POLICY "Anyone can view published events" ON public.events
-  FOR SELECT USING (is_published = TRUE);
+-- Events
+DROP POLICY IF EXISTS "Admins can view all events" ON public.events;
+DROP POLICY IF EXISTS "Admins can insert events" ON public.events;
+DROP POLICY IF EXISTS "Admins can update events" ON public.events;
+DROP POLICY IF EXISTS "Admins can delete events" ON public.events;
 
 CREATE POLICY "Admins can view all events" ON public.events
   FOR SELECT USING (public.current_user_admin_role() IN ('super_admin', 'admin', 'editor'));
@@ -67,9 +70,10 @@ CREATE POLICY "Admins can update events" ON public.events
 CREATE POLICY "Admins can delete events" ON public.events
   FOR DELETE USING (public.current_user_admin_role() IN ('super_admin', 'admin'));
 
--- Gallery Images Policies
-CREATE POLICY "Anyone can view gallery images" ON public.gallery_images
-  FOR SELECT USING (TRUE);
+-- Gallery images
+DROP POLICY IF EXISTS "Admins can insert gallery images" ON public.gallery_images;
+DROP POLICY IF EXISTS "Admins can update gallery images" ON public.gallery_images;
+DROP POLICY IF EXISTS "Admins can delete gallery images" ON public.gallery_images;
 
 CREATE POLICY "Admins can insert gallery images" ON public.gallery_images
   FOR INSERT WITH CHECK (public.current_user_admin_role() IN ('super_admin', 'admin', 'editor'));
@@ -80,9 +84,11 @@ CREATE POLICY "Admins can update gallery images" ON public.gallery_images
 CREATE POLICY "Admins can delete gallery images" ON public.gallery_images
   FOR DELETE USING (public.current_user_admin_role() IN ('super_admin', 'admin'));
 
--- Announcements Policies
-CREATE POLICY "Anyone can view published announcements" ON public.announcements
-  FOR SELECT USING (status = 'published');
+-- Announcements
+DROP POLICY IF EXISTS "Admins can view all announcements" ON public.announcements;
+DROP POLICY IF EXISTS "Admins can insert announcements" ON public.announcements;
+DROP POLICY IF EXISTS "Admins can update announcements" ON public.announcements;
+DROP POLICY IF EXISTS "Admins can delete announcements" ON public.announcements;
 
 CREATE POLICY "Admins can view all announcements" ON public.announcements
   FOR SELECT USING (public.current_user_admin_role() IN ('super_admin', 'admin', 'editor'));
@@ -96,9 +102,9 @@ CREATE POLICY "Admins can update announcements" ON public.announcements
 CREATE POLICY "Admins can delete announcements" ON public.announcements
   FOR DELETE USING (public.current_user_admin_role() IN ('super_admin', 'admin'));
 
--- Contact Submissions Policies
-CREATE POLICY "Anyone can insert contact submissions" ON public.contact_submissions
-  FOR INSERT WITH CHECK (TRUE);
+-- Contact submissions
+DROP POLICY IF EXISTS "Admins can view contact submissions" ON public.contact_submissions;
+DROP POLICY IF EXISTS "Admins can update contact submissions" ON public.contact_submissions;
 
 CREATE POLICY "Admins can view contact submissions" ON public.contact_submissions
   FOR SELECT USING (public.current_user_admin_role() IN ('super_admin', 'admin'));
@@ -106,9 +112,9 @@ CREATE POLICY "Admins can view contact submissions" ON public.contact_submission
 CREATE POLICY "Admins can update contact submissions" ON public.contact_submissions
   FOR UPDATE USING (public.current_user_admin_role() IN ('super_admin', 'admin'));
 
--- Newsletter Subscribers Policies
-CREATE POLICY "Anyone can subscribe to newsletter" ON public.newsletter_subscribers
-  FOR INSERT WITH CHECK (TRUE);
+-- Newsletter subscribers
+DROP POLICY IF EXISTS "Admins can view newsletter subscribers" ON public.newsletter_subscribers;
+DROP POLICY IF EXISTS "Admins can update newsletter subscribers" ON public.newsletter_subscribers;
 
 CREATE POLICY "Admins can view newsletter subscribers" ON public.newsletter_subscribers
   FOR SELECT USING (public.current_user_admin_role() IN ('super_admin', 'admin'));
@@ -116,9 +122,8 @@ CREATE POLICY "Admins can view newsletter subscribers" ON public.newsletter_subs
 CREATE POLICY "Admins can update newsletter subscribers" ON public.newsletter_subscribers
   FOR UPDATE USING (public.current_user_admin_role() IN ('super_admin', 'admin'));
 
--- Site Settings Policies
-CREATE POLICY "Anyone can view site settings" ON public.site_settings
-  FOR SELECT USING (TRUE);
+-- Site settings
+DROP POLICY IF EXISTS "Super admins can manage site settings" ON public.site_settings;
 
 CREATE POLICY "Super admins can manage site settings" ON public.site_settings
   FOR ALL USING (public.current_user_admin_role() = 'super_admin');

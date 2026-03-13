@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Spinner } from "@/components/ui/spinner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ImageUpload } from "@/components/admin/image-upload"
 import type { BoardMember } from "@/lib/types"
 
 interface BoardMemberFormProps {
@@ -18,6 +19,7 @@ interface BoardMemberFormProps {
 export function BoardMemberForm({ member }: BoardMemberFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const [imageUrl, setImageUrl] = useState(member?.image_url || "")
   const router = useRouter()
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -26,14 +28,16 @@ export function BoardMemberForm({ member }: BoardMemberFormProps) {
     setError("")
 
     const formData = new FormData(event.currentTarget)
-    const data = {
+    const data: Record<string, unknown> = {
       name: formData.get("name") as string,
-      position: formData.get("position") as string,
+      role: formData.get("position") as string,
       bio: formData.get("bio") as string || null,
-      image_url: formData.get("image_url") as string || null,
       email: formData.get("email") as string || null,
       display_order: parseInt(formData.get("display_order") as string) || 0,
       is_active: formData.get("is_active") === "on",
+    }
+    if (imageUrl) {
+      data.photo_url = imageUrl
     }
 
     try {
@@ -128,15 +132,14 @@ export function BoardMemberForm({ member }: BoardMemberFormProps) {
           </div>
 
           <div>
-            <label htmlFor="image_url" className="block text-sm font-medium text-foreground mb-2">
-              Image URL
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Photo
             </label>
-            <Input
-              id="image_url"
-              name="image_url"
-              type="url"
-              defaultValue={member?.image_url || ""}
-              placeholder="https://..."
+            <ImageUpload
+              value={imageUrl}
+              onChange={setImageUrl}
+              onRemove={() => setImageUrl("")}
+              disabled={isSubmitting}
             />
           </div>
 

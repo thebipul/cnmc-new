@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { BOARD_MEMBERS_SELECT } from "@/lib/board-members"
 import { BoardMemberForm } from "@/components/admin/board-members/board-member-form"
 
 interface EditBoardMemberPageProps {
@@ -12,7 +13,7 @@ export default async function EditBoardMemberPage({ params }: EditBoardMemberPag
   
   const { data: member } = await supabase
     .from("board_members")
-    .select("*")
+    .select(BOARD_MEMBERS_SELECT)
     .eq("id", id)
     .single()
 

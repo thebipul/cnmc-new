@@ -120,7 +120,7 @@ export function ImageUpload({ value, onChange, onRemove, disabled }: ImageUpload
         disabled={disabled || isUploading}
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
       />
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground pointer-events-none">
         {isUploading ? (
           <>
             <Loader2 className="h-8 w-8 animate-spin" />

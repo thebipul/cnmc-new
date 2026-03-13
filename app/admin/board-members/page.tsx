@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { BOARD_MEMBERS_SELECT } from "@/lib/board-members"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
@@ -9,7 +10,7 @@ export default async function BoardMembersPage() {
   
   const { data: members } = await supabase
     .from("board_members")
-    .select("*")
+    .select(BOARD_MEMBERS_SELECT)
     .order("display_order", { ascending: true })
 
   return (

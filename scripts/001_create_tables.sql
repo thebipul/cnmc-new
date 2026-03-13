@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS public.board_members (
   name TEXT NOT NULL,
   role TEXT NOT NULL,
   bio TEXT,
-  photo_url TEXT,
+  image_url TEXT,
   email TEXT,
   phone TEXT,
   display_order INT DEFAULT 0,

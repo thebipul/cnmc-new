@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { BOARD_MEMBERS_SELECT } from "@/lib/board-members"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { HeroSection } from "@/components/home/hero-section"
@@ -22,7 +23,7 @@ export default async function HomePage() {
   // Fetch board members
   const { data: boardMembers } = await supabase
     .from("board_members")
-    .select("*")
+    .select(BOARD_MEMBERS_SELECT)
     .eq("is_active", true)
     .order("display_order", { ascending: true })
     .limit(4)
